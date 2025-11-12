@@ -1,3 +1,6 @@
+// FIX: Add triple-slash directive to include Vite's client types for `import.meta.env`.
+/// <reference types="vite/client" />
+
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
@@ -5,16 +8,16 @@ import { getFirestore } from "firebase/firestore";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
-// Your web app's Firebase configuration
+// Your web app's Firebase configuration is now loaded from environment variables
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyAxZnbmmxga5Xx0khtgtQknkyl2aeIZdJI",
-  authDomain: "pf-app-35a76.firebaseapp.com",
-  projectId: "pf-app-35a76",
-  storageBucket: "pf-app-35a76.firebasestorage.app",
-  messagingSenderId: "206921619869",
-  appId: "1:206921619869:web:00f1058ad5f39465bd3774",
-  measurementId: "G-K7BH34Y07E"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 // Initialize Firebase

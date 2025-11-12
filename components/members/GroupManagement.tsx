@@ -7,7 +7,8 @@ import { useAlert, useUser } from '../../App';
 import { Group } from '../../types';
 import GroupModal from '../modals/GroupModal';
 import ConfirmationModal from '../modals/ConfirmationModal';
-import { DEFAULT_GROUPS } from '../../services/mock-data/members';
+
+const DEFAULT_GROUPS = ['Lions', 'Eagles', 'Bears', 'Wolves'];
 
 const GroupManagement: React.FC = () => {
     const user = useUser();
