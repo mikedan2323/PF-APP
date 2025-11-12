@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="https://img.icons8.com/ios-filled/50/38bdf8/shield.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fa Nyame Pathfinders Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://aistudiocdn.com/react-big-calendar@1.19.4/lib/css/react-big-calendar.css" />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+            colors: {
+              primary: {
+                DEFAULT: 'var(--color-primary-default)',
+                'dark': 'var(--color-primary-dark)',
+              },
+              success: 'var(--color-success)',
+              warning: 'var(--color-warning)',
+              danger: 'var(--color-danger)',
+              
+              'gray-base': 'var(--color-bg-base)',
+              'gray-surface': 'var(--color-bg-surface)',
+              'gray-border': 'var(--color-border)',
+              'gray-light-border': 'var(--color-border-light)',
+              'gray-input': 'var(--color-input-bg)',
+
+              'text-main': 'var(--color-text-main)',
+              'text-muted': 'var(--color-text-muted)',
+              'text-subtle': 'var(--color-text-subtle)',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      :root {
+        /* Light Theme (Default) */
+        --color-primary-default: #38BDF8;
+        --color-primary-dark: #0EA5E9;
+        --color-success: #4ADE80;
+        --color-warning: #FBBF24;
+        --color-danger: #EF4444;
+
+        --color-bg-base: #F1F5F9;         /* slate-100 */
+        --color-bg-surface: #FFFFFF;      /* white */
+        --color-border: #E2E8F0;       /* slate-200 */
+        --color-border-light: #CBD5E1; /* slate-300 */
+        --color-input-bg: #F8FAFC;        /* slate-50 */
+
+        --color-text-main: #1E293B;         /* slate-800 */
+        --color-text-muted: #475569;        /* slate-600 */
+        --color-text-subtle: #64748B;       /* slate-500 */
+      }
+
+      .dark {
+        /* Dark Theme */
+        --color-bg-base: #0F172A;         /* slate-900 */
+        --color-bg-surface: #1E293B;      /* slate-800 */
+        --color-border: #334155;       /* slate-700 */
+        --color-border-light: #475569; /* slate-600 */
+        --color-input-bg: #334155;         /* slate-700 */
+
+        --color-text-main: #E2E8F0;         /* slate-200 */
+        --color-text-muted: #CBD5E1;        /* slate-300 */
+        --color-text-subtle: #94A3B8;       /* slate-400 */
+      }
+      
+      body {
+        background-color: var(--color-bg-base);
+        color: var(--color-text-main);
+      }
+
+      /* Calendar Styles - works for both themes by using CSS variables */
+      .rbc-calendar { background-color: transparent; color: var(--color-text-main); border-color: var(--color-border); }
+      .rbc-toolbar { color: var(--color-text-main); }
+      .rbc-toolbar button { color: var(--color-text-main); }
+      .rbc-toolbar button:hover, .rbc-toolbar button:focus { background-color: var(--color-border); }
+      .rbc-btn-group button.rbc-active { background-color: var(--color-primary-default); color: white; }
+      .rbc-header { border-color: var(--color-border); color: var(--color-text-muted); }
+      .rbc-month-view, .rbc-time-view, .rbc-agenda-view { border-color: var(--color-border); }
+      .rbc-month-row + .rbc-month-row, .rbc-day-slot .rbc-time-slot { border-color: var(--color-border); }
+      .rbc-day-bg { border-color: var(--color-border); }
+      .rbc-day-bg.rbc-off-range-bg { background-color: var(--color-bg-base); opacity: 0.7; }
+      .rbc-day-bg.rbc-today { background-color: rgba(56, 189, 248, 0.1); }
+      .rbc-event { background-color: var(--color-primary-default); color: #0F172A; }
+      .rbc-agenda-table, .rbc-agenda-table tr, .rbc-agenda-table td, .rbc-agenda-time-cell, .rbc-agenda-date-cell { border-color: var(--color-border); }
+
+      .dark .rbc-btn-group button.rbc-active { color: #0F172A; }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.3.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.5",
+    "react-big-calendar/": "https://aistudiocdn.com/react-big-calendar@^1.19.4/",
+    "react-big-calendar": "https://aistudiocdn.com/react-big-calendar@^1.19.4",
+    "react-feather": "https://aistudiocdn.com/react-feather@^2.0.10",
+    "moment": "https://aistudiocdn.com/moment@^2.30.1",
+    "firebase/app": "https://aistudiocdn.com/firebase@^12.5.0/app",
+    "firebase/auth": "https://aistudiocdn.com/firebase@^12.5.0/auth",
+    "firebase/firestore": "https://aistudiocdn.com/firebase@^12.5.0/firestore",
+    "firebase/": "https://aistudiocdn.com/firebase@^12.5.0/",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.0",
+    "vite": "https://aistudiocdn.com/vite@^7.2.2"
+  }
+}
+</script>
+</head>
+  <body class="font-sans">
+    <div id="root"></div>
+  </body>
+</html>

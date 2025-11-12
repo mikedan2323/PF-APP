@@ -1,0 +1,5 @@
+{
+  "name": "Fa Nyame Pathfinders Admin",
+  "description": "A comprehensive web application to manage a Pathfinders club, including attendance, uniform tracking, member directory, points leaderboard, and report generation.",
+  "requestFramePermissions": []
+}
