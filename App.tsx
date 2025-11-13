@@ -1,12 +1,8 @@
 // FIX: Use namespace import for React to solve JSX types issue.
 import * as React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { User, AlertData, Permissions, AppUser } from './types';
+import { AlertData, AppUser } from './types';
 import { api } from './services/api';
-
-// Firebase Integration
-import { auth } from './services/firebase';
-import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, User as FirebaseUser } from 'firebase/auth';
 
 // Components
 import Sidebar from './components/layout/Sidebar';
@@ -38,17 +34,42 @@ export const useUser = () => React.useContext(UserContext);
 export const useAlert = () => React.useContext(AlertContext);
 export const useTheme = () => React.useContext(ThemeContext);
 
-const LoginScreen: React.FC<{ onLogin: () => void; isLoading: boolean; error: string | null }> = ({ onLogin, isLoading, error }) => (
+const LoginScreen: React.FC<{
+  onLogin: () => void;
+  isLoading: boolean;
+  error: string | null;
+  availableUsers: AppUser[];
+  selectedUserId: string;
+  onSelectUser: (id: string) => void;
+}> = ({ onLogin, isLoading, error, availableUsers, selectedUserId, onSelectUser }) => (
     <div className="fixed inset-0 bg-gray-base flex items-center justify-center p-4">
       <div className="w-full max-w-sm bg-gray-surface rounded-lg shadow-xl p-8 border border-gray-border text-center">
         <img src="https://img.icons8.com/ios-filled/50/38bdf8/shield.png" alt="Logo" className="w-12 h-12 mx-auto mb-2" />
         <h1 className="text-2xl font-bold text-text-main">Fa Nyame Admin Portal</h1>
-        <p className="text-text-muted text-sm mt-1 mb-6">Please sign in to continue.</p>
-        
+        <p className="text-text-muted text-sm mt-1 mb-6">Choose a demo account to explore the app.</p>
+
         {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
-        
-        <Button onClick={onLogin} variant="primary" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Signing In...' : 'Sign in with Google'}
+
+        <label className="block text-left text-sm text-text-muted mb-2" htmlFor="demo-user">
+          Demo account
+        </label>
+        <select
+          id="demo-user"
+          value={selectedUserId}
+          onChange={event => onSelectUser(event.target.value)}
+          className="w-full mb-4 rounded-md border border-gray-border bg-gray-base px-3 py-2 text-text-main focus:outline-none focus:ring-2 focus:ring-primary"
+          disabled={isLoading}
+        >
+          <option value="">Select an account</option>
+          {availableUsers.map(availableUser => (
+            <option key={availableUser.id} value={availableUser.id}>
+              {availableUser.name} ({availableUser.role})
+            </option>
+          ))}
+        </select>
+
+        <Button onClick={onLogin} variant="primary" className="w-full" disabled={isLoading || !selectedUserId}>
+            {isLoading ? 'Signing In...' : 'Sign in'}
         </Button>
       </div>
     </div>
@@ -56,8 +77,10 @@ const LoginScreen: React.FC<{ onLogin: () => void; isLoading: boolean; error: st
 
 const App: React.FC = () => {
   const [user, setUser] = React.useState<AppUser | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true); // Start true to wait for auth state
+  const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [availableUsers, setAvailableUsers] = React.useState<AppUser[]>([]);
+  const [selectedUserId, setSelectedUserId] = React.useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
   const [alerts, setAlerts] = React.useState<AlertData[]>([]);
@@ -87,95 +110,89 @@ const App: React.FC = () => {
     }, 5000);
   }, []);
 
+  const loadUserById = React.useCallback(async (userId: string) => {
+    const profile = await api.getUser(userId);
+    if (!profile) {
+      throw new Error('Selected account could not be found.');
+    }
+    const rolePermissions = await api.getRolePermissions(profile.role);
+    const resolvedUser: AppUser = {
+      ...profile,
+      permissions: rolePermissions || profile.permissions,
+    };
+    setUser(resolvedUser);
+    localStorage.setItem('appUserId', resolvedUser.id);
+    setError(null);
+    return resolvedUser;
+  }, []);
+
+  const refreshAvailableUsers = React.useCallback(async () => {
+    const response = await api.getUsers();
+    if (response.success) {
+      setAvailableUsers(response.data);
+    }
+    return response;
+  }, []);
+
   React.useEffect(() => {
-    // Firebase auth listener
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-        setIsLoading(true);
-        try {
-            if (firebaseUser) {
-                // User is signed in, now fetch their profile and permissions from Firestore
-                let userProfile = await api.getUser(firebaseUser.uid);
-                
-                if (!userProfile) {
-                    // First time login for this user
-                    const newUser = {
-                        id: firebaseUser.uid,
-                        name: firebaseUser.displayName || 'New User',
-                        role: 'Counsellor', // Assign the most restrictive role by default
-                        isShared: false,
-                    };
-                    await api.addUser(newUser.name, newUser.role, '', newUser.isShared, firebaseUser.uid); // Code is irrelevant here
-                    userProfile = await api.getUser(firebaseUser.uid); // Re-fetch
-                    if(userProfile) addAlert('Welcome! A new account has been created for you with default permissions. Please ask an admin to assign your correct role.', 'success');
-                }
-
-                if(userProfile) {
-                    const rolePermissions = await api.getRolePermissions(userProfile.role);
-                    if(rolePermissions) {
-                         const appUser: AppUser = {
-                            ...userProfile,
-                            permissions: rolePermissions,
-                        };
-                        setUser(appUser);
-                        setError(null); // Clear previous errors on success
-                    } else {
-                        // This can happen if the role assigned to the user doesn't exist in the 'roles' collection.
-                        throw new Error(`Your assigned role "${userProfile.role}" could not be found. Please contact an administrator.`);
-                    }
-                } else {
-                    throw new Error("Could not create or load your user profile. You may not have permission to access this application.");
-                }
-
-            } else {
-                // User is signed out.
-                setUser(null);
-                setError(null);
-            }
-        } catch (e: any) {
-            console.error("Error during authentication process:", e);
-            const isConnectionError = e.message?.includes('blocked') || e.code?.includes('unavailable') || e.message?.includes('offline') || e.code?.includes('permission-denied');
-            const errorMessage = isConnectionError
-                ? "Failed to connect to the database. This can be caused by a network issue, an ad blocker, or incorrect security rules. If you are a new user, please contact an admin to be added to the system."
-                : `An error occurred: ${e.message || "Could not sign in."}`;
-            
-            setError(errorMessage);
-            setUser(null);
-            // If there's an error, we should sign the user out to prevent a broken state
-            if (auth.currentUser) {
-                await signOut(auth);
-            }
-        } finally {
-            setIsLoading(false);
+    const initialize = async () => {
+      setIsLoading(true);
+      try {
+        const response = await refreshAvailableUsers();
+        const storedUserId = localStorage.getItem('appUserId');
+        if (storedUserId && response.success && response.data.some(availableUser => availableUser.id === storedUserId)) {
+          setSelectedUserId(storedUserId);
+          await loadUserById(storedUserId);
         }
-    });
+      } catch (e) {
+        console.error('Failed to initialize demo accounts:', e);
+        setError('Failed to load demo accounts. Please refresh to try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    // Cleanup subscription on unmount
-    return () => unsubscribe();
-  }, [addAlert]); // Add addAlert to dependency array
+    initialize();
+  }, [loadUserById, refreshAvailableUsers]);
+
+  React.useEffect(() => {
+    if (!selectedUserId && availableUsers.length > 0) {
+      setSelectedUserId(availableUsers[0].id);
+    }
+  }, [availableUsers, selectedUserId]);
+
+  const handleSelectUser = (id: string) => {
+    setSelectedUserId(id);
+    setError(null);
+  };
 
   const handleLogin = async () => {
+    if (!selectedUserId) {
+      setError('Please choose an account to continue.');
+      return;
+    }
+
     setIsLoading(true);
-    setError(null);
     try {
-        const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
-        // The onAuthStateChanged listener will handle setting the user state.
+      await loadUserById(selectedUserId);
     } catch (e: any) {
-        console.error("Firebase login error:", e);
-        setError(e.message || "Failed to sign in.");
-        setIsLoading(false);
+      console.error('Demo login failed:', e);
+      setError(e?.message || 'Failed to sign in.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    // The onAuthStateChanged listener will handle clearing the user state.
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem('appUserId');
+    setError(null);
   };
 
-  const handleUserUpdate = (updatedUser: AppUser) => {
-    // This function will be more relevant when we manage users in Firestore.
-    // For now, it ensures UI consistency if permissions are changed in-session.
+  const handleUserUpdate = async (updatedUser: AppUser) => {
     setUser(updatedUser);
+    localStorage.setItem('appUserId', updatedUser.id);
+    await refreshAvailableUsers();
   };
   
   const removeAlert = (id: number) => {
@@ -185,7 +202,16 @@ const App: React.FC = () => {
   if (isLoading) return <Spinner show={true} />;
 
   if (!user) {
-    return <LoginScreen onLogin={handleLogin} error={error} isLoading={isLoading} />;
+    return (
+      <LoginScreen
+        onLogin={handleLogin}
+        error={error}
+        isLoading={isLoading}
+        availableUsers={availableUsers}
+        selectedUserId={selectedUserId}
+        onSelectUser={handleSelectUser}
+      />
+    );
   }
 
   return (
